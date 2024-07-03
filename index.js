@@ -7,36 +7,50 @@ const cors = require('cors');
 const app = express();
 
 app.use(bodyParser.json());
-app.use(cors()); // Enable CORS for all origins
+app.use(cors());
 
-app.post('/create-payment-intent', async (req, res) => {
-  const { amount, customerName, customerAddress } = req.body;
+app.post("/checkout", async (req, res) => {
+    try {
+        const { items, customerName, customerAddress } = req.body;
 
-  try {
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount,
-      currency: 'inr',
-      description: 'Description of the product or service', // Add a description here
-      metadata: {
-        customer_name: customerName,
-        customer_address: customerAddress,
-      },
-    });
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ["card"],
+            mode: "payment",
+            line_items: items.map(item => ({
+                price_data: {
+                    currency: "inr",
+                    product_data: {
+                        name: item.name
+                    },
+                    unit_amount: item.price * 100,
+                },
+                quantity: item.quantity
+            })),
+            success_url: "https://github.com/amaansodagar786",
+            cancel_url: "https://vercel.com/amaan-sodagars-projects",
+            customer_email: "test@example.com", // Example email
+            billing_address_collection: 'required', // Require billing address
+            shipping_address_collection: {
+                allowed_countries: ['IN'] // Allow shipping address from India
+            },
+            metadata: {
+                customer_name: customerName,
+                customer_address: customerAddress
+            }
+        });
 
-    res.json({
-      clientSecret: paymentIntent.client_secret,
-    });
-  } catch (error) {
-    console.error('Error creating Payment Intent:', error);
-    res.status(500).json({ error: 'Failed to create Payment Intent' });
-  }
+        res.json({ url: session.url });
+    } catch (error) {
+        console.error("Error creating checkout session:", error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.get('/', (req, res) => {
-  res.send('Hello World!')
-  })
+    res.send('Hello 400000!')
+    })
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server connected on port ${PORT}`);
+    console.log(`Server connected on port ${PORT}`);
 });
